@@ -37,8 +37,9 @@ bazel test //...
 bazel build @hermes//:hermesc
 ```
 
-The consumer test evaluates JavaScript through JSI, including Promise builtins
-loaded from generated internal bytecode. CI and BCR presubmit target macOS ARM64
+The consumer test evaluates JavaScript through JSI, including Unicode regexp
+properties and Promise builtins loaded from generated internal bytecode.
+CI and BCR presubmit target macOS ARM64
 and Linux x86_64 with GNU libc. Linux configuration assumes glibc; hermetic LLVM's
 default GNU target uses glibc 2.28. Musl is outside the current header setup.
 Other target configurations have not been validated.
