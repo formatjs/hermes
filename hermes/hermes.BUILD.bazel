@@ -26,7 +26,10 @@ DEFINES = [
 ]
 
 # The VM aliases C structs with C++ objects and permits signed overflow.
-C_FLAGS = ["-fno-strict-aliasing", "-fno-strict-overflow"]
+C_FLAGS = [
+    "-fno-strict-aliasing",
+    "-fno-strict-overflow",
+]
 
 CXX_FLAGS = C_FLAGS + [
     "-std=c++17",

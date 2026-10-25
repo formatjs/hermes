@@ -9,6 +9,8 @@ def _hermes_impl(module_ctx):
     http_archive(
         name = "hermes_src",
         build_file = Label("//hermes:hermes.BUILD.bazel"),
+        patches = [Label("//hermes:missing_standard_headers.patch")],
+        patch_args = ["-p1"],
         sha256 = HERMES_SHA256,
         strip_prefix = "hermes-" + HERMES_COMMIT,
         urls = ["https://github.com/facebook/hermes/archive/" + HERMES_COMMIT + ".tar.gz"],
