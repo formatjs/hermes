@@ -1,0 +1,16 @@
+module(name = "hermes_smoke")
+
+bazel_dep(name = "hermes")
+local_path_override(
+    module_name = "hermes",
+    path = "../..",
+)
+
+bazel_dep(name = "llvm", version = "0.8.25")
+bazel_dep(name = "rules_cc", version = "0.2.27")
+bazel_dep(name = "rules_python", version = "2.4.5")
+
+register_toolchains("@llvm//toolchain:all")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.12.7")

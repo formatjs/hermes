@@ -1,0 +1,46 @@
+load("@package_metadata//licenses/rules:license.bzl", "license")
+load("@package_metadata//purl:purl.bzl", "purl")
+load("@package_metadata//rules:package_metadata.bzl", "package_metadata")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["MODULE.bazel"])
+
+alias(
+    name = "hermes_vm",
+    actual = "@hermes_src//:hermes_vm",
+)
+
+alias(
+    name = "headers",
+    actual = "@hermes_src//:headers",
+)
+
+alias(
+    name = "hermesc",
+    actual = "@hermes_src//:hermesc",
+)
+
+package_metadata(
+    name = "package_metadata",
+    purl = purl.bazel(
+        module_name(),
+        module_version(),
+    ),
+)
+
+license(
+    name = "license",
+    kind = "@package_metadata//licenses/spdx:MIT",
+    text = "LICENSE",
+)
+
+alias(
+    name = "format",
+    actual = "//tools:format",
+)
+
+alias(
+    name = "format_test",
+    actual = "//tools:format_test",
+)
