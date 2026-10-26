@@ -17,6 +17,13 @@ Conventional Commits supply its changelog. `//tests/version:version_test` checks
 the proposal against the pinned package metadata and commit. Snapshot releases
 retain GitHub prerelease status.
 
+`//tools/release:release` runs pinned Release Please with the Simple file updater.
+Its version adapter preserves `.bcr.N` through PRs, changelogs, manifests, and tags.
+Only a merged release PR matching `release-as` can publish. Once the manifest
+records that proposal, later runs do not open another PR for it.
+The private pnpm package extension supplies `git-file-utils`' undeclared runtime
+dependency on `@octokit/request-error`; lifecycle scripts stay disabled.
+
 Release Please updates `version.txt` and the root manifest only through its
 release PR. Their `0.0.0` value is unreleased bootstrap state. Keep `MODULE.bazel`
 version blank; BCR publication patches it to the release version.

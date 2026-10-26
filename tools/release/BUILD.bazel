@@ -1,0 +1,30 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("@release_npm//:defs.bzl", "npm_link_all_packages")
+
+exports_files([
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+])
+
+npm_link_all_packages(name = "node_modules")
+
+js_binary(
+    name = "release",
+    data = [
+        "versions.cjs",
+        ":node_modules/release-please",
+    ],
+    entry_point = "release.cjs",
+)
+
+js_test(
+    name = "release_test",
+    size = "small",
+    data = [
+        "release.cjs",
+        "versions.cjs",
+        ":node_modules/release-please",
+    ],
+    entry_point = "release.test.cjs",
+)
