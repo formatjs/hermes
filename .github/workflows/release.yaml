@@ -16,7 +16,7 @@ jobs:
     uses: bazel-contrib/.github/.github/workflows/release_ruleset.yaml@v7.7.0
     with:
       release_files: hermes-*.tar.gz
-      prerelease: false
+      prerelease: ${{ contains(inputs.tag_name || github.ref_name, '-') }}
       tag_name: ${{ inputs.tag_name || github.ref_name }}
   publish:
     needs: release

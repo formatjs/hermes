@@ -1,0 +1,44 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+UNIT_COPTS = [
+    "-std=c++17",
+    "-fno-strict-aliasing",
+    "-fno-strict-overflow",
+]
+
+UNIT_DEPS = [
+    "@googletest//:gtest_main",
+    "@hermes_src//:build_configuration",
+    "@hermes_src//:hermescompiler",
+]
+
+# Run unchanged upstream suites in the development harness on Linux.
+cc_test(
+    name = "adt_test",
+    size = "small",
+    srcs = ["@hermes_src//:adt_test_sources"],
+    copts = UNIT_COPTS,
+    linkstatic = True,
+    target_compatible_with = ["@platforms//os:linux"],
+    deps = UNIT_DEPS,
+)
+
+cc_test(
+    name = "support_test",
+    size = "small",
+    srcs = ["@hermes_src//:support_test_sources"],
+    copts = UNIT_COPTS,
+    linkstatic = True,
+    target_compatible_with = ["@platforms//os:linux"],
+    deps = UNIT_DEPS,
+)
+
+cc_test(
+    name = "regex_test",
+    size = "small",
+    srcs = ["@hermes_src//:regex_test_sources"],
+    copts = UNIT_COPTS,
+    linkstatic = True,
+    target_compatible_with = ["@platforms//os:linux"],
+    deps = UNIT_DEPS,
+)

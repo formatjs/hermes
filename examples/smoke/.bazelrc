@@ -1,2 +1,1 @@
-build --compilation_mode=opt
-test --test_output=errors
+import %workspace%/../../.bazelrc

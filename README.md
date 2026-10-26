@@ -34,19 +34,25 @@ root Python version selection are development dependencies.
 
 ## Build
 
+Run builds on Linux:
+
 ```sh
-bazel test //...
+bazel test --config=linux //...
 cd examples/smoke
-bazel test //...
-bazel build @hermes//:hermesc
+bazel test --config=linux //...
+bazel build --config=linux @hermes//:hermesc
 ```
 
 The consumer test evaluates JavaScript through JSI, including Unicode regexp
 properties and Promise builtins loaded from generated internal bytecode.
-CI and BCR presubmit target macOS ARM64
-and Linux x86_64 with GNU libc. Linux configuration assumes glibc; hermetic LLVM's
+Root tests also run upstream ADT, Unicode conversion, and regex suites.
+CI covers macOS ARM64 and Linux x86_64 with GNU libc; BCR presubmit builds on
+Linux. Linux configuration assumes glibc; hermetic LLVM's
 default GNU target uses glibc 2.28. Musl is outside the current header setup.
 Other target configurations have not been validated.
+
+BuildBuddy runs Linux checks and cross-compiles macOS smoke archives through
+`with_cfg`. GitHub Actions only downloads and runs them. See [CI](docs/ci.md).
 
 The runtime uses Hades GC and Unicode Lite, with built-in Intl and debugger
 disabled. Embedders can install native Intl implementations through JSI.

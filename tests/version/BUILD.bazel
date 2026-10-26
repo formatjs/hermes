@@ -1,0 +1,19 @@
+load("@rules_python//python:defs.bzl", "py_test")
+load("//:repositories.bzl", "HERMES_COMMIT")
+
+py_test(
+    name = "version_test",
+    srcs = ["version_test.py"],
+    args = [
+        "--config=$(rlocationpath //:release-please-config.json)",
+        "--upstream-package=$(rlocationpath @hermes_src//:version_metadata)",
+        "--commit=" + HERMES_COMMIT,
+        "--snapshot",
+    ],
+    data = [
+        "//:release-please-config.json",
+        "@hermes_src//:version_metadata",
+    ],
+    legacy_create_init = 0,
+    deps = ["@rules_python//python/runfiles"],
+)

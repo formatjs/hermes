@@ -4,6 +4,10 @@
   "include-component-in-tag": false,
   "changelog-type": "default",
   "packages": {
-    ".": {"package-name": "hermes"}
+    ".": {
+      "package-name": "hermes",
+      "release-as": "260318099.0.0-393a539e6",
+      "prerelease": true
+    }
   }
 }
