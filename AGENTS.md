@@ -18,5 +18,7 @@ Use Conventional Commits. Follow [docs/releasing.md](docs/releasing.md): keep
 `MODULE.bazel` version blank, let Release Please update `version.txt`, and merge
 its release PR only after CI passes and its proposed version is approved.
 Do not invent a published version, push a version tag, or dispatch release/BCR
-publication without authorization. Repository secrets are maintainer setup;
-never copy credentials from another repository or expand authentication scopes.
+publication without authorization. Use `formatjs` organization secrets
+`GH_RELEASE_TOKEN` and `BCR_PUBLISH_TOKEN`, with an access policy covering this
+repository. Never copy credentials from another repository or expand
+authentication scopes.

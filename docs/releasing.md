@@ -14,15 +14,15 @@ flowchart LR
 
 ## Setup
 
-Repository secrets must be configured by a maintainer:
+Use these `formatjs` organization secrets:
 
 - `GH_RELEASE_TOKEN`: Classic PAT with `repo` and `workflow` scopes. Release
   Please uses it so the version tag triggers the release workflow.
 - `BCR_PUBLISH_TOKEN`: Classic PAT with `repo` and `workflow` scopes; its account
   must push to `formatjs/bazel-central-registry` and open the upstream PR.
 
-No credentials are included in this repository. Secrets are prerequisites for
-release automation; creating the workflows does not publish a release.
+Their access policy must include `formatjs/hermes`; public-repository visibility
+covers it. Workflows read them through the `secrets` context.
 
 ## Publish
 
