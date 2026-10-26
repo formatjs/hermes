@@ -109,14 +109,10 @@ def main():
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         uri = artifact_uri(json.load(response), sha, workspace)
-    query = urllib.parse.urlencode({
-        "invocation_id": identifier,
-        "bytestream_url": uri,
-        "filename": "smoke.tar.gz",
-    })
     request = urllib.request.Request(
-        BASE_URL + "/file/download?" + query,
-        headers={"x-buildbuddy-api-key": key},
+        BASE_URL + "/api/v1/GetFile",
+        data=json.dumps({"uri": uri}).encode(),
+        headers={"Content-Type": "application/json", "x-buildbuddy-api-key": key},
     )
     with urllib.request.urlopen(request, timeout=120) as response:
         contents = response.read(MAX_ARCHIVE_BYTES + 1)

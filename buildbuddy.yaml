@@ -14,10 +14,10 @@ actions:
           bazel query --ignore_dev_dependency --lockfile_mode=off \
             'deps(set(//:headers //:hermes_vm //:hermesc))' > /dev/null
       - run: bazel test --config=bb-workflow //...
-      - run: bazel build --config=bb-workflow //tests/dist:smoke_macos_arm64
+      - run: bazel build --config=bb-workflow --remote_download_toplevel //tests/dist:smoke_macos_arm64
       - run: |
           set -euo pipefail
-          archive=$(bazel cquery --config=bb-workflow --output=files //tests/dist:smoke_macos_arm64)
+          archive=$(bazel cquery --config=bb-workflow --remote_download_toplevel --output=files //tests/dist:smoke_macos_arm64)
           [[ -n "$archive" && "$archive" != *$'\n'* ]]
           cp "$archive" "$BUILDBUDDY_ARTIFACTS_DIRECTORY/hermes-macos-arm64-root.tar.gz"
 
@@ -35,9 +35,9 @@ actions:
     steps:
       - run: bazel test --config=bb-workflow //...
       - run: bazel build --config=bb-workflow @hermes//:hermesc
-      - run: bazel build --config=bb-workflow //:smoke_macos_arm64
+      - run: bazel build --config=bb-workflow --remote_download_toplevel //:smoke_macos_arm64
       - run: |
           set -euo pipefail
-          archive=$(bazel cquery --config=bb-workflow --output=files //:smoke_macos_arm64)
+          archive=$(bazel cquery --config=bb-workflow --remote_download_toplevel --output=files //:smoke_macos_arm64)
           [[ -n "$archive" && "$archive" != *$'\n'* ]]
           cp "$archive" "$BUILDBUDDY_ARTIFACTS_DIRECTORY/hermes-macos-arm64-consumer.tar.gz"
