@@ -13,8 +13,7 @@ def _hermes_impl(module_ctx):
         name = "hermes_src",
         build_file = Label("//:" + _BCR_ENTRY + "/overlay/BUILD.bazel"),
         files = {
-            "hermes/configure/BUILD.bazel": Label("//:" + _BCR_ENTRY + "/overlay/hermes/configure/BUILD.bazel"),
-            "hermes/configure/configure.py": Label("//:" + _BCR_ENTRY + "/overlay/hermes/configure/configure.py"),
+            "configure.bzl": Label("//:" + _BCR_ENTRY + "/overlay/configure.bzl"),
             "tests/BUILD.bazel": Label("//:" + _BCR_ENTRY + "/overlay/tests/BUILD.bazel"),
             "tests/runtime_test.cpp": Label("//:" + _BCR_ENTRY + "/overlay/tests/runtime_test.cpp"),
         },

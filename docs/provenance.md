@@ -13,8 +13,9 @@ The overlay is authored directly from that Hermes revision's target and source
 declarations. Source lists follow `lib/CMakeLists.txt` and its subdirectories,
 `external/llvh/lib`, `API/hermes`, `API/jsi/jsi`, and `public/hermes/Public`.
 These files supply build metadata only; Bazel runs native `rules_cc` actions.
-Configuration headers, typed-library includes, and internal bytecode are generated
-from the pinned sources, with a compiler built for the execution platform.
+Configuration headers use Bazel template actions. Typed-library includes and
+internal bytecode are generated from pinned sources, with a compiler built for
+the execution platform.
 
 The overlay itself uses the root MIT license. LLVM and Python toolchains retain
 their upstream licenses and are fetched through their Bazel modules.

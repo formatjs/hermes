@@ -3,7 +3,7 @@
 Native Bazel overlay for [facebook/hermes](https://github.com/facebook/hermes),
 pinned to static_h commit
 [`393a539e645944a6ce879afc18ea8ddaa9232a08`](https://github.com/facebook/hermes/commit/393a539e645944a6ce879afc18ea8ddaa9232a08).
-Uses `rules_cc`, hermetic Python code generation, and
+Uses `rules_cc`, Bazel template actions, hermetic code generation, and
 [hermeticbuild/hermetic-llvm](https://github.com/hermeticbuild/hermetic-llvm).
 
 ## Consume
@@ -28,7 +28,7 @@ the same pinned source. Consumers use:
 - `@hermes//:hermesc`: bytecode compiler; code generation builds it for execution.
 
 Consumers select their C/C++ toolchain. This repository's tests use hermetic LLVM
-23.1.2 through module `llvm` 0.8.25. Python helpers use Bazel toolchains.
+23.1.2 through module `llvm` 0.8.25. Byte embedding uses Bazel's Python toolchain.
 
 `rules_cc`, `rules_python`, `platforms`, and `package_metadata` remain normal
 dependencies: consumers load them while building Hermes. LLVM, formatting, and

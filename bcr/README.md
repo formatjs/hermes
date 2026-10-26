@@ -2,7 +2,7 @@
 
 `modules/hermes/<version>/` is the complete registry entry. `source.json` points
 at upstream Hermes; `overlay/` contains the reviewed Bazel files. Local builds
-use these same build definitions, Python helper, and header patch.
+use these same build definitions, configuration rule, and header patch.
 
 Run `bazel run //tools/bcr:validate` after edits. It checks source pins, versions,
 file inventories, and checksums without rewriting files. Update stale hashes
