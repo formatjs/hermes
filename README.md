@@ -62,6 +62,9 @@ disabled. Embedders can install native Intl implementations through JSI.
 ## Upkeep
 
 `repositories.bzl` owns the source commit/checksum and selected BCR version.
+The `.bcr.1` revision fixes proxy construction: construct traps do not read
+`newTarget.prototype`; forwarded constructors allocate their own receiver.
+Runtime smoke tests cover trap order, derived constructors, and nested proxies.
 `bcr/modules/hermes/<version>/overlay/` holds the build definitions and helpers.
 Updating Hermes requires reviewing source lists, configuration headers, and
 internal-bytecode generation,

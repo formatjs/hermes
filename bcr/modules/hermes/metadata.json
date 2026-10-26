@@ -18,7 +18,8 @@
         "github:formatjs/hermes"
     ],
     "versions": [
-        "260318099.0.0-393a539e6"
+        "260318099.0.0-393a539e6",
+        "260318099.0.0-393a539e6.bcr.1"
     ],
     "yanked_versions": {}
 }
