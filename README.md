@@ -61,8 +61,10 @@ disabled. Embedders can install native Intl implementations through JSI.
 
 ## Upkeep
 
-`repositories.bzl` owns the source commit/checksum. Updating Hermes requires
-reviewing source lists, configuration headers, and internal-bytecode generation,
+`repositories.bzl` owns the source commit/checksum and selected BCR version.
+`bcr/modules/hermes/<version>/overlay/` holds the build definitions and helpers.
+Updating Hermes requires reviewing source lists, configuration headers, and
+internal-bytecode generation,
 then running root and consumer tests. `bazel run //:format` formats Bazel files.
 
 Release automation follows

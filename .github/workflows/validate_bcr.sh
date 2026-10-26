@@ -3,7 +3,8 @@ set -euo pipefail
 
 config=${1:-linux}
 registry=$(mktemp -d)
-entry=$(bazel run "--config=$config" //tools/bcr:entry -- --registry="$registry")
+bazel run "--config=$config" //tools/bcr:validate
+entry=$(bazel run "--config=$config" //tools/bcr:stage -- --registry="$registry")
 consumer="$entry/overlay/examples/smoke"
 cd "$consumer"
 bazel test "--config=$config" --registry="file://$registry" --registry=https://bcr.bazel.build --lockfile_mode=off //...

@@ -1,4 +1,0 @@
-exports_files([
-    "hermes.BUILD.bazel",
-    "missing_standard_headers.patch",
-])
