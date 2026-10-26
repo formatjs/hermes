@@ -3,12 +3,12 @@
 Native Bazel overlay for [facebook/hermes](https://github.com/facebook/hermes),
 pinned to static_h commit
 [`393a539e645944a6ce879afc18ea8ddaa9232a08`](https://github.com/facebook/hermes/commit/393a539e645944a6ce879afc18ea8ddaa9232a08).
-Uses `rules_cc`, hermetic Python code generation, and
+Uses `rules_cc`, Bazel template actions, hermetic code generation, and
 [hermeticbuild/hermetic-llvm](https://github.com/hermeticbuild/hermetic-llvm).
 
 ## Consume
 
-No release exists yet. Until the first BCR release, use a commit-pinned
+Until the first BCR entry lands, use a commit-pinned
 `archive_override` for this repository, or `local_path_override` for a checkout:
 
 ```starlark
@@ -19,14 +19,16 @@ bazel_dep(name = "llvm", version = "0.8.25", dev_dependency = True)
 register_toolchains("@llvm//toolchain:all", dev_dependency = True)
 ```
 
-The module loads its pinned upstream source automatically. Consumers use:
+BCR downloads upstream Hermes directly and applies the registry's `overlay/`
+build files. The checkout override above uses a development harness that fetches
+the same pinned source. Consumers use:
 
 - `@hermes//:hermes_vm`: Hermes runtime, compiler support, and JSI.
 - `@hermes//:headers`: public Hermes and JSI headers.
 - `@hermes//:hermesc`: bytecode compiler; code generation builds it for execution.
 
 Consumers select their C/C++ toolchain. This repository's tests use hermetic LLVM
-23.1.2 through module `llvm` 0.8.25. Python helpers use Bazel toolchains.
+23.1.2 through module `llvm` 0.8.25. Byte embedding uses Bazel's Python toolchain.
 
 `rules_cc`, `rules_python`, `platforms`, and `package_metadata` remain normal
 dependencies: consumers load them while building Hermes. LLVM, formatting, and
@@ -59,8 +61,10 @@ disabled. Embedders can install native Intl implementations through JSI.
 
 ## Upkeep
 
-`repositories.bzl` owns the source commit/checksum. Updating Hermes requires
-reviewing source lists, configuration headers, and internal-bytecode generation,
+`repositories.bzl` owns the source commit/checksum and selected BCR version.
+`bcr/modules/hermes/<version>/overlay/` holds the build definitions and helpers.
+Updating Hermes requires reviewing source lists, configuration headers, and
+internal-bytecode generation,
 then running root and consumer tests. `bazel run //:format` formats Bazel files.
 
 Release automation follows

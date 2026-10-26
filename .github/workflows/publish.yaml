@@ -16,14 +16,89 @@ on:
         type: string
 jobs:
   publish:
-    uses: bazel-contrib/publish-to-bcr/.github/workflows/publish.yaml@v1.4.2
-    with:
-      tag_name: ${{ inputs.tag_name }}
-      draft: false
-      registry_fork: formatjs/bazel-central-registry
+    runs-on: ubuntu-latest
+    concurrency: hermes-bcr-publication
     permissions:
       attestations: write
       contents: write
       id-token: write
-    secrets:
-      publish_token: ${{ secrets.publish_token || secrets.BCR_PUBLISH_TOKEN }}
+    env:
+      TAG_NAME: ${{ inputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag_name }}
+          path: this
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: bazelbuild/bazel-central-registry
+          path: registry
+          persist-credentials: false
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - name: Stage checked-in registry entry
+        working-directory: this
+        run: |
+          set -euo pipefail
+          [[ "$TAG_NAME" == v* ]]
+          version=${TAG_NAME#v}
+          bazel run //tools/bcr:validate
+          bazel run //tools/bcr:stage -- --registry="$GITHUB_WORKSPACE/registry" --version="$version"
+          echo "ENTRY=registry/modules/hermes/$version" >> "$GITHUB_ENV"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Verify upstream archive
+        run: |
+          set -euo pipefail
+          url=$(jq -r .url "$ENTRY/source.json")
+          archive="$RUNNER_TEMP/$(basename "$url")"
+          curl -fsSL "$url" -o "$archive"
+          actual="sha256-$(openssl dgst -sha256 -binary "$archive" | openssl base64 -A)"
+          if [[ "$actual" != "$(jq -r .integrity "$ENTRY/source.json")" ]]; then
+            echo "::error::Upstream archive checksum mismatch"
+            exit 1
+          fi
+          echo "UPSTREAM_ARCHIVE=$archive" >> "$GITHUB_ENV"
+      - name: Attest registry entry
+        id: attest
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: |
+            ${{ env.ENTRY }}/**/*
+            ${{ env.UPSTREAM_ARCHIVE }}
+      - name: Upload registry attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          jq -c . "$BUNDLE" > bcr.intoto.jsonl
+          gh release upload "$TAG_NAME" bcr.intoto.jsonl --repo "$GITHUB_REPOSITORY" --clobber
+          integrity="sha256-$(openssl dgst -sha256 -binary bcr.intoto.jsonl | openssl base64 -A)"
+          jq -n \
+            --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG_NAME/bcr.intoto.jsonl" \
+            --arg integrity "$integrity" --arg archive "$(basename "$UPSTREAM_ARCHIVE")" \
+            '{url: $url, integrity: $integrity} as $evidence | {
+              mediaType: "application/vnd.build.bazel.registry.attestation+json;version=1.0.0",
+              attestations: {"MODULE.bazel": $evidence, "source.json": $evidence, ($archive): $evidence}
+            }' > "$ENTRY/attestations.json"
+      - name: Open BCR pull request
+        working-directory: registry
+        env:
+          GH_TOKEN: ${{ secrets.publish_token || secrets.BCR_PUBLISH_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch="hermes-$TAG_NAME"
+          git switch -c "$branch"
+          git add "modules/hermes"
+          git -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -m "hermes@$VERSION"
+          gh auth setup-git
+          fork=https://github.com/formatjs/bazel-central-registry.git
+          previous=$(git ls-remote "$fork" "refs/heads/$branch" | cut -f1)
+          git push --force-with-lease="refs/heads/$branch:$previous" "$fork" "$branch"
+          printf 'Release: https://github.com/%s/releases/tag/%s\n\nUses pinned upstream Hermes archive with native BCR overlay.\n' "$GITHUB_REPOSITORY" "$TAG_NAME" > "$RUNNER_TEMP/bcr-body.md"
+          existing=$(gh pr list --repo bazelbuild/bazel-central-registry --head "formatjs:$branch" --json url --jq '.[0].url // empty')
+          if [[ -n "$existing" ]]; then
+            echo "$existing" >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh pr create --repo bazelbuild/bazel-central-registry --base main --head "formatjs:$branch" --title "hermes@$VERSION" --body-file "$RUNNER_TEMP/bcr-body.md"
+          fi

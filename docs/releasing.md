@@ -26,14 +26,15 @@ dependency on `@octokit/request-error`; lifecycle scripts stay disabled.
 
 Release Please updates `version.txt` and the root manifest only through its
 release PR. Their `0.0.0` value is unreleased bootstrap state. Keep `MODULE.bazel`
-version blank; BCR publication patches it to the release version.
+version blank; the checked-in BCR modules declare their release version.
 
 ```mermaid
 flowchart LR
   commit[Conventional commits] --> pr[Release Please PR]
   pr -->|merge| tag[Version tag and GitHub release]
-  tag --> assets[Source archive and attestation]
-  assets --> bcr[BCR pull request]
+  tag --> assets[Overlay archive and attestation]
+  assets --> entry[Checked-in BCR entry]
+  entry --> bcr[BCR pull request]
 ```
 
 ## Setup
@@ -52,8 +53,18 @@ covers it. Workflows read them through the `secrets` context.
 
 Confirm main CI and the consumer smoke tests pass, no release run is active,
 and the proposed version is expected. Merge the Release Please PR to approve
-that version. The tag triggers `release.yaml`, which creates an archive and
-attestation, then calls `publish.yaml` to open the BCR PR.
+that version. The tag triggers `release.yaml`, which creates an overlay archive
+and attestation, then calls `publish.yaml`. Publication copies the checked-in
+entry with `//tools/bcr:stage`, attests it, and opens the BCR PR. `source.json`
+uses the upstream
+archive and checksum from `repositories.bzl`; `overlay/` carries the Bazel files.
+Consumers do not download the overlay release archive or fetch a second source
+repository. Root `MODULE.bazel` stays blank; the overlay module is versioned.
+
+Before proposing a release, commit `bcr/modules/hermes/<version>/` with its
+overlay, source metadata, checksums, and consumer test. Update `HERMES_VERSION`,
+registry metadata, and `release-as` together. Validate with
+`bazel run //tools/bcr:validate`; CI builds the committed entry directly.
 
 Completion requires the GitHub release assets, attestations, and an open BCR PR.
 Do not invent a version or push a tag manually.

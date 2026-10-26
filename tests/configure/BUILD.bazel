@@ -1,0 +1,42 @@
+load("@hermes_src//:configure.bzl", "configure_headers")
+load("@rules_python//python:defs.bzl", "py_test")
+
+CONFIGURATIONS = [platform + "_" + arch for platform in [
+    "linux",
+    "macos",
+] for arch in [
+    "arm64",
+    "x86_64",
+]]
+
+[configure_headers(
+    testonly = True,
+    arch = arch,
+    out_prefix = platform + "_" + arch,
+    platform = platform,
+    prefix = platform + "_" + arch,
+) for platform in [
+    "linux",
+    "macos",
+] for arch in [
+    "arm64",
+    "x86_64",
+]]
+
+HEADERS = [configuration + "_" + name for configuration in CONFIGURATIONS for name in [
+    "llvm",
+    "llvh",
+    "vm",
+]]
+
+py_test(
+    name = "headers_test",
+    srcs = ["headers_test.py"],
+    args = ["--expected=$(rlocationpath :expected.json)"] + [
+        "--header=" + name + "=$(rlocationpath :" + name + ")"
+        for name in HEADERS
+    ],
+    data = ["expected.json"] + HEADERS,
+    legacy_create_init = 0,
+    deps = ["@rules_python//python/runfiles"],
+)

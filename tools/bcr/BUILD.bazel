@@ -1,0 +1,22 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+load("//:repositories.bzl", "HERMES_COMMIT", "HERMES_SHA256", "HERMES_VERSION")
+
+py_binary(
+    name = "stage",
+    srcs = ["stage.py"],
+    args = ["--version=" + HERMES_VERSION],
+    legacy_create_init = 0,
+    main = "stage.py",
+)
+
+py_binary(
+    name = "validate",
+    srcs = ["validate.py"],
+    args = [
+        "--version=" + HERMES_VERSION,
+        "--commit=" + HERMES_COMMIT,
+        "--checksum=" + HERMES_SHA256,
+    ],
+    legacy_create_init = 0,
+    main = "validate.py",
+)
