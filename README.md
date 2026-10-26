@@ -8,7 +8,7 @@ Uses `rules_cc`, hermetic Python code generation, and
 
 ## Consume
 
-No release exists yet. Until the first BCR release, use a commit-pinned
+Until the first BCR entry lands, use a commit-pinned
 `archive_override` for this repository, or `local_path_override` for a checkout:
 
 ```starlark
@@ -19,7 +19,9 @@ bazel_dep(name = "llvm", version = "0.8.25", dev_dependency = True)
 register_toolchains("@llvm//toolchain:all", dev_dependency = True)
 ```
 
-The module loads its pinned upstream source automatically. Consumers use:
+BCR downloads upstream Hermes directly and applies the registry's `overlay/`
+build files. The checkout override above uses a development harness that fetches
+the same pinned source. Consumers use:
 
 - `@hermes//:hermes_vm`: Hermes runtime, compiler support, and JSI.
 - `@hermes//:headers`: public Hermes and JSI headers.

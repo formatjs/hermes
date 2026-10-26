@@ -13,7 +13,7 @@
       "name": "formatjs"
     }
   ],
-  "repository": ["github:formatjs/hermes"],
+  "repository": ["github:facebook/hermes", "github:formatjs/hermes"],
   "versions": [],
   "yanked_versions": {}
 }

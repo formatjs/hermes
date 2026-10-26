@@ -14,6 +14,7 @@ actions:
           bazel query --ignore_dev_dependency --lockfile_mode=off \
             'deps(set(//:headers //:hermes_vm //:hermesc))' > /dev/null
       - run: bazel test --config=bb-workflow //...
+      - run: bash .github/workflows/validate_bcr.sh bb-workflow
       - run: bazel build --config=bb-workflow --remote_download_toplevel //tests/dist:smoke_macos_arm64
       - run: |
           set -euo pipefail

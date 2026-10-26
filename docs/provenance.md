@@ -1,8 +1,10 @@
 # Source provenance
 
-`repositories.bzl` downloads upstream Hermes at commit
+`repositories.bzl` pins upstream Hermes at commit
 `393a539e645944a6ce879afc18ea8ddaa9232a08`, checked against SHA-256
 `5fce2dbb3b9046b21b717de30d9e5192f756420e12daf967dddee3a32d975a51`.
+BCR `source.json` downloads this archive directly, then applies native
+`overlay/` build files. The local harness fetches the same archive separately.
 The downloaded tree retains its Meta MIT license and third-party notices.
 `missing_standard_headers.patch` adds standard includes required by LLVM 23's
 libc++ headers.

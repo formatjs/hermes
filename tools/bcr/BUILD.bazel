@@ -1,0 +1,18 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+
+py_binary(
+    name = "entry",
+    srcs = ["entry.py"],
+    legacy_create_init = 0,
+    main = "entry.py",
+)
+
+py_test(
+    name = "entry_test",
+    srcs = [
+        "entry.py",
+        "entry_test.py",
+    ],
+    legacy_create_init = 0,
+    main = "entry_test.py",
+)
