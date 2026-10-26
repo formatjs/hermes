@@ -1,0 +1,33 @@
+actions:
+  - name: Test all targets
+    container_image: ubuntu-20.04
+    triggers:
+      push:
+        branches: [main, 'gh-readonly-queue/*']
+      pull_request:
+        branches: [main]
+    resource_requests:
+      memory: 16GB
+      disk: 32GB
+    steps:
+      - run: |
+          bazel query --ignore_dev_dependency --lockfile_mode=off \
+            'deps(set(//:headers //:hermes_vm //:hermesc))' > /dev/null
+      - run: bazel test --config=bb-workflow //...
+      - run: bazel build --config=bb-workflow --platforms=@llvm//platforms:macos_aarch64 //tests/dist:smoke_bundle
+
+  - name: Test independent consumer
+    container_image: ubuntu-20.04
+    bazel_workspace_dir: examples/smoke
+    triggers:
+      push:
+        branches: [main, 'gh-readonly-queue/*']
+      pull_request:
+        branches: [main]
+    resource_requests:
+      memory: 16GB
+      disk: 32GB
+    steps:
+      - run: bazel test --config=bb-workflow //...
+      - run: bazel build --config=bb-workflow @hermes//:hermesc
+      - run: bazel build --config=bb-workflow --platforms=@llvm//platforms:macos_aarch64 //:smoke_bundle

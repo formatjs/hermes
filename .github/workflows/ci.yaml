@@ -5,39 +5,124 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 jobs:
-  test:
+  linux:
+    name: Linux / ${{ matrix.workspace }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - workspace: root
+            directory: .
+            bundle: //tests/dist:smoke_bundle
+          - workspace: consumer
+            directory: examples/smoke
+            bundle: //:smoke_bundle
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+        shell: bash
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
+          disk-cache: ${{ github.workflow }}-${{ matrix.workspace }}
           repository-cache: true
       - name: Check public targets without development dependencies
+        if: matrix.workspace == 'root'
         run: bazel query --ignore_dev_dependency --lockfile_mode=off 'deps(set(//:headers //:hermes_vm //:hermesc))' > /dev/null
-      - name: Test overlay
-        run: bazel test //...
-      - name: Test independent consumer
-        working-directory: examples/smoke
+      - name: Test Linux
+        run: bazel test --config=linux //...
+      - name: Cross-build macOS ARM64 bundle
+        env:
+          BUNDLE_TARGET: ${{ matrix.bundle }}
+        run: bazel build --config=linux --platforms=@llvm//platforms:macos_aarch64 "$BUNDLE_TARGET"
+      - name: Stage Bazel bundle
+        env:
+          BUNDLE_TARGET: ${{ matrix.bundle }}
+          WORKSPACE_NAME: ${{ matrix.workspace }}
         run: |
-          bazel test //...
-          bazel build @hermes//:hermesc
+          set -euo pipefail
+          archive=$(bazel cquery --config=linux --platforms=@llvm//platforms:macos_aarch64 --output=files "$BUNDLE_TARGET")
+          [[ -n "$archive" && "$archive" != *$'\n'* ]]
+          artifact_dir="$RUNNER_TEMP/hermes-macos-arm64-$WORKSPACE_NAME"
+          mkdir -p "$artifact_dir"
+          cp "$archive" "$artifact_dir/smoke.tar.gz"
+          (cd "$artifact_dir" && sha256sum smoke.tar.gz > smoke.tar.gz.sha256)
+      - name: Upload macOS bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: hermes-macos-arm64-${{ matrix.workspace }}
+          path: ${{ runner.temp }}/hermes-macos-arm64-${{ matrix.workspace }}/*
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload test logs
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-logs-${{ matrix.os }}
+          name: test-logs-${{ matrix.workspace }}
           path: |
-            bazel-testlogs/**/test.log
-            examples/smoke/bazel-testlogs/**/test.log
+            ${{ matrix.directory }}/bazel-testlogs/**/test.log
+            ${{ matrix.directory }}/bazel-testlogs/**/test.xml
           if-no-files-found: warn
           retention-days: 7
+
+  macos-smoke:
+    name: macOS ARM64 artifact smoke
+    needs: linux
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download current-run bundles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: hermes-macos-arm64-*
+          path: ${{ runner.temp }}/hermes-smoke
+      - name: Verify and run bundles
+        env:
+          SMOKE_ROOT: ${{ runner.temp }}/hermes-smoke
+        run: |
+          set -euo pipefail
+          [[ "$(uname -m)" == arm64 ]]
+          for workspace in root consumer; do
+            artifact_dir="$SMOKE_ROOT/hermes-macos-arm64-$workspace"
+            (cd "$artifact_dir" && shasum -a 256 -c smoke.tar.gz.sha256)
+            python3 - "$artifact_dir/smoke.tar.gz" <<'PY'
+          import sys
+          import tarfile
+
+          with tarfile.open(sys.argv[1], "r:gz") as archive:
+              files = []
+              for member in archive.getmembers():
+                  name = member.name.removeprefix("./")
+                  if member.isdir() and name in ("", "."):
+                      continue
+                  if not member.isfile() or name not in {"runtime_test", "hermesc"}:
+                      raise SystemExit(f"Unexpected archive entry: {member.name}")
+                  if member.mode & 0o777 != 0o755:
+                      raise SystemExit(f"Unexpected executable mode: {member.name}")
+                  files.append(name)
+              if sorted(files) != ["hermesc", "runtime_test"]:
+                  raise SystemExit("Incomplete smoke bundle")
+          PY
+            binary_dir="$artifact_dir/bin"
+            mkdir -p "$binary_dir"
+            tar -xzf "$artifact_dir/smoke.tar.gz" -C "$binary_dir"
+            for binary in runtime_test hermesc; do
+              file "$binary_dir/$binary" | grep -E 'Mach-O 64-bit.*arm64'
+            done
+            "$binary_dir/runtime_test"
+            printf 'print("Hermes compiler smoke");\n' > "$binary_dir/smoke.js"
+            "$binary_dir/hermesc" -O -emit-binary "-out=$binary_dir/smoke.hbc" "$binary_dir/smoke.js"
+            test -s "$binary_dir/smoke.hbc"
+          done

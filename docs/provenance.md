@@ -7,11 +7,12 @@ The downloaded tree retains its Meta MIT license and third-party notices.
 `missing_standard_headers.patch` adds standard includes required by LLVM 23's
 libc++ headers.
 
-The native build layout was informed by
-[Snapchat/Valdi's Hermes overlay](https://github.com/Snapchat/Valdi/blob/ede1462368bbc233c507dd7136a3602d457a56b8/third-party/hermes/hermes.BUILD).
-Its MIT notice is retained in [Valdi.txt](../LICENSES/Valdi.txt).
-Configuration and internal bytecode are generated for the pinned source;
-Valdi's older prepared headers and bytecode are not imported.
+The overlay is authored directly from that Hermes revision's target and source
+declarations. Source lists follow `lib/CMakeLists.txt` and its subdirectories,
+`external/llvh/lib`, `API/hermes`, `API/jsi/jsi`, and `public/hermes/Public`.
+These files supply build metadata only; Bazel runs native `rules_cc` actions.
+Configuration headers, typed-library includes, and internal bytecode are generated
+from the pinned sources, with a compiler built for the execution platform.
 
 The overlay itself uses the root MIT license. LLVM and Python toolchains retain
 their upstream licenses and are fetched through their Bazel modules.
