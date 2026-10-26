@@ -15,8 +15,8 @@ No release exists yet. Until the first BCR release, use a commit-pinned
 bazel_dep(name = "hermes")
 local_path_override(module_name = "hermes", path = "/path/to/hermes")
 
-bazel_dep(name = "llvm", version = "0.8.25")
-register_toolchains("@llvm//toolchain:all")
+bazel_dep(name = "llvm", version = "0.8.25", dev_dependency = True)
+register_toolchains("@llvm//toolchain:all", dev_dependency = True)
 ```
 
 The module loads its pinned upstream source automatically. Consumers use:
@@ -27,6 +27,10 @@ The module loads its pinned upstream source automatically. Consumers use:
 
 Consumers select their C/C++ toolchain. This repository's tests use hermetic LLVM
 23.1.2 through module `llvm` 0.8.25. Python helpers use Bazel toolchains.
+
+`rules_cc`, `rules_python`, `platforms`, and `package_metadata` remain normal
+dependencies: consumers load them while building Hermes. LLVM, formatting, and
+root Python version selection are development dependencies.
 
 ## Build
 

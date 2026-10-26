@@ -22,6 +22,8 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
+      - name: Check public targets without development dependencies
+        run: bazel query --ignore_dev_dependency --lockfile_mode=off 'deps(set(//:headers //:hermes_vm //:hermesc))' > /dev/null
       - name: Test overlay
         run: bazel test //...
       - name: Test independent consumer

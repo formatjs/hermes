@@ -38,9 +38,11 @@ license(
 alias(
     name = "format",
     actual = "//tools:format",
+    visibility = ["//visibility:private"],
 )
 
 alias(
     name = "format_test",
     actual = "//tools:format_test",
+    visibility = ["//visibility:private"],
 )

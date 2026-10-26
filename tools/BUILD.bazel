@@ -1,6 +1,6 @@
 load("@buildifier_prebuilt//:rules.bzl", "buildifier", "buildifier_test")
 
-package(default_visibility = ["//visibility:public"])
+package(default_visibility = ["//:__pkg__"])
 
 buildifier(
     name = "format",
