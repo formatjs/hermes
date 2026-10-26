@@ -6,6 +6,11 @@
       "github": "longlho",
       "github_user_id": 198255,
       "name": "Long Ho"
+    },
+    {
+      "github": "formatjsproject",
+      "github_user_id": 64374319,
+      "name": "formatjs"
     }
   ],
   "repository": ["github:formatjs/hermes"],
