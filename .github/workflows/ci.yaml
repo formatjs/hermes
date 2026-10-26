@@ -1,0 +1,43 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+      - name: Check public targets without development dependencies
+        run: bazel query --ignore_dev_dependency --lockfile_mode=off 'deps(set(//:headers //:hermes_vm //:hermesc))' > /dev/null
+      - name: Test overlay
+        run: bazel test //...
+      - name: Test independent consumer
+        working-directory: examples/smoke
+        run: |
+          bazel test //...
+          bazel build @hermes//:hermesc
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-logs-${{ matrix.os }}
+          path: |
+            bazel-testlogs/**/test.log
+            examples/smoke/bazel-testlogs/**/test.log
+          if-no-files-found: warn
+          retention-days: 7

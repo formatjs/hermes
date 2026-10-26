@@ -1,0 +1,8 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+cc_test(
+    name = "runtime_test",
+    srcs = ["@hermes//tests:runtime_test.cpp"],
+    copts = ["-std=c++17"],
+    deps = ["@hermes//:hermes_vm"],
+)

@@ -1,0 +1,382 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_python//python:defs.bzl", "py_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+# Component split follows Valdi's native Bazel overlay, updated for static_h.
+# https://github.com/Snapchat/Valdi/blob/main/third-party/hermes/hermes.BUILD
+
+DEFINES = [
+    "HERMESVM_ALLOW_CONCURRENT_GC",
+    "HERMESVM_ALLOW_INLINE_ASM",
+    "HERMESVM_ALLOW_JIT=0",
+    "HERMESVM_GC_HADES",
+    "HERMESVM_INDIRECT_THREADING",
+    "HERMESVM_LOG_HEAP_SEGMENT_SIZE=22",
+    "HERMES_CHECK_NATIVE_STACK",
+    "HERMES_ENABLE_CORE_EXTENSIONS=0",
+    "HERMES_ENABLE_CONTRIB_EXTENSIONS=0",
+    "HERMES_ENABLE_UNICODE_REGEXP_PROPERTY_ESCAPES",
+    "HERMES_LLVM",
+    "HERMES_PLATFORM_UNICODE=HERMES_PLATFORM_UNICODE_LITE",
+    "HERMES_USE_BOOST_CONTEXT=0",
+    'HERMES_RELEASE_VERSION=\\"1.0.0\\"',
+    "_GNU_SOURCE",
+]
+
+# The VM aliases C structs with C++ objects and permits signed overflow.
+C_FLAGS = [
+    "-fno-strict-aliasing",
+    "-fno-strict-overflow",
+]
+
+CXX_FLAGS = C_FLAGS + [
+    "-std=c++17",
+    "-Wno-invalid-offsetof",
+    "-Wno-parentheses",
+    "-Wno-unused-label",
+    "-Wno-deprecated-volatile",
+    "-Wno-deprecated-this-capture",
+    "-Wno-unknown-warning-option",
+]
+
+config_setting(
+    name = "macos",
+    constraint_values = ["@platforms//os:macos"],
+)
+
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+config_setting(
+    name = "x86_64",
+    constraint_values = ["@platforms//cpu:x86_64"],
+)
+
+config_setting(
+    name = "arm64",
+    constraint_values = ["@platforms//cpu:aarch64"],
+)
+
+SUPPORTED_PLATFORM = select({
+    ":macos": [],
+    ":linux": [],
+    "//conditions:default": ["@platforms//:incompatible"],
+}) + select({
+    ":arm64": [],
+    ":x86_64": [],
+    "//conditions:default": ["@platforms//:incompatible"],
+})
+
+PLATFORM_ARG = select({
+    ":macos": "--platform=macos ",
+    "//conditions:default": "--platform=linux ",
+})
+
+ARCH_ARG = select({
+    ":arm64": "--arch=arm64 ",
+    "//conditions:default": "--arch=x86_64 ",
+})
+
+[genrule(
+    name = name,
+    srcs = [template],
+    outs = [output],
+    cmd = "$(execpath @hermes//hermes:configure) " + PLATFORM_ARG + ARCH_ARG + "--template=$< --output=$@",
+    tools = ["@hermes//hermes:configure"],
+) for name, template, output in [
+    ("llvm_config", "external/llvh/include/llvh/Config/llvm-config.h.cmake", "generated/llvh/Config/llvm-config.h"),
+    ("llvh_config", "external/llvh/include/llvh/Config/config.h.cmake", "generated/llvh/Config/config.h"),
+    ("vm_config", "lib/config/libhermesvm-config.h.in", "generated/libhermesvm-config.h"),
+]]
+
+cc_library(
+    name = "headers",
+    hdrs = glob([
+        "API/hermes/**/*.h",
+        "API/jsi/jsi/*.h",
+        "public/**/*.h",
+    ]),
+    includes = [
+        "API",
+        "API/jsi",
+        "public",
+    ],
+)
+
+cc_library(
+    name = "internal_headers",
+    hdrs = glob(
+        [
+            "include/**/*.h",
+            "include/**/*.def",
+            "include/**/*.inc",
+            "lib/**/*.h",
+            "lib/**/*.def",
+            "lib/**/*.inc",
+            "external/llvh/**/*.h",
+            "external/llvh/**/*.def",
+            "external/llvh/**/*.inc",
+            "external/dtoa/*.h",
+            "external/dtoa/*.inc",
+            "external/zip/**/*.h",
+            "external/fast_float/**/*.h",
+            "external/dragonbox/**/*.h",
+        ],
+        allow_empty = True,
+    ) + [
+        ":llvh_config",
+        ":llvm_config",
+        ":vm_config",
+    ],
+    defines = DEFINES,
+    includes = [
+        "external",
+        "external/dragonbox",
+        "external/fast_float",
+        "external/llvh/gen/include",
+        "external/llvh/include",
+        "generated",
+        "include",
+    ],
+    deps = [":headers"],
+)
+
+cc_library(
+    name = "llvh_c",
+    srcs = glob(["external/llvh/lib/Support/*.c"]),
+    copts = C_FLAGS,
+    deps = [":internal_headers"],
+)
+
+cc_library(
+    name = "llvh",
+    srcs = glob([
+        "external/llvh/lib/Support/*.cpp",
+        "external/llvh/lib/Demangle/*.cpp",
+    ]),
+    copts = CXX_FLAGS + [
+        "-fno-exceptions",
+        "-fno-rtti",
+    ],
+    linkopts = select({
+        ":macos": [],
+        "//conditions:default": [
+            "-ldl",
+            "-lpthread",
+        ],
+    }),
+    deps = [
+        ":internal_headers",
+        ":llvh_c",
+    ],
+)
+
+cc_library(
+    name = "dtoa_c",
+    srcs = [
+        "external/dtoa/dtoa.c",
+        "external/dtoa/g_fmt.c",
+    ],
+    copts = C_FLAGS + [
+        "-Wno-parentheses",
+        "-Wno-unused-label",
+    ],
+    local_defines = [
+        "IEEE_8087",
+        "Long=int",
+        "MULTIPLE_THREADS",
+        "NO_HEX_FP",
+        "NO_INFNAN_CHECK",
+    ],
+    deps = [":internal_headers"],
+)
+
+cc_library(
+    name = "dtoa",
+    srcs = ["external/dtoa/locks.cpp"],
+    copts = CXX_FLAGS + [
+        "-fno-exceptions",
+        "-fno-rtti",
+    ],
+    deps = [
+        ":dtoa_c",
+        ":internal_headers",
+    ],
+)
+
+cc_library(
+    name = "zip",
+    srcs = ["external/zip/src/zip.c"],
+    copts = C_FLAGS,
+    deps = [":internal_headers"],
+)
+
+py_binary(
+    name = "xxd",
+    srcs = ["lib/InternalJavaScript/xxd.py"],
+    legacy_create_init = 0,
+)
+
+genrule(
+    name = "typed_lib_source",
+    srcs = glob(["lib/TypedLib/*.js"]),
+    outs = ["generated/TypedLib.js"],
+    cmd = "cat $(SRCS) > $@",
+)
+
+[genrule(
+    name = name,
+    srcs = [source],
+    outs = [output],
+    cmd = "$(execpath :xxd) $< > $@",
+    tools = [":xxd"],
+) for name, source, output in [
+    ("typed_lib_include", ":typed_lib_source", "generated/TypedLib.inc"),
+    ("typed_language_include", "doc/TypedLanguage.md", "generated/TypedLanguage.inc"),
+]]
+
+COMPILER_COMPONENTS = [
+    "ADT",
+    "AST",
+    "AST2JS",
+    "BCGen",
+    "CompilerDriver",
+    "FrontEndDefs",
+    "IR",
+    "IRGen",
+    "Inst",
+    "Optimizer",
+    "Parser",
+    "Platform",
+    "Regex",
+    "Sema",
+    "SourceMap",
+    "Support",
+    "TypedLib",
+    "Utils",
+]
+
+cc_library(
+    name = "compiler",
+    srcs = glob(
+        ["lib/%s/**/*.cpp" % component for component in COMPILER_COMPONENTS] + ["public/**/*.cpp"],
+        exclude = [
+            "lib/BCGen/HBC/HBCStub.cpp",
+            "lib/Platform/Intl/**/*.cpp",
+        ],
+    ),
+    hdrs = [
+        ":typed_language_include",
+        ":typed_lib_include",
+    ],
+    copts = CXX_FLAGS + [
+        "-fno-exceptions",
+        "-fno-rtti",
+    ],
+    deps = [
+        ":dtoa",
+        ":internal_headers",
+        ":llvh",
+        ":zip",
+    ],
+)
+
+cc_binary(
+    name = "hermesc",
+    srcs = ["tools/hermesc/hermesc.cpp"],
+    copts = CXX_FLAGS + [
+        "-fno-exceptions",
+        "-fno-rtti",
+    ],
+    target_compatible_with = SUPPORTED_PLATFORM,
+    deps = [":compiler"],
+)
+
+genrule(
+    name = "internal_javascript_source",
+    srcs = glob(["lib/InternalJavaScript/*.js"]),
+    outs = ["generated/InternalBytecode.js"],
+    cmd = "cat $(SRCS) > $@",
+)
+
+genrule(
+    name = "internal_bytecode",
+    srcs = [":internal_javascript_source"],
+    outs = ["generated/InternalBytecode.hbc"],
+    cmd = "$(execpath :hermesc) -O -Wno-undefined-variable -g0 -emit-binary -out=$@ $<",
+    tools = [":hermesc"],
+)
+
+genrule(
+    name = "internal_bytecode_include",
+    srcs = [":internal_bytecode"],
+    outs = ["generated/InternalBytecode.inc"],
+    cmd = "$(execpath :xxd) $< > $@",
+    tools = [":xxd"],
+)
+
+cc_library(
+    name = "runtime",
+    srcs = glob(
+        ["lib/VM/**/*.cpp"],
+        exclude = [
+            "lib/VM/gcs/MallocGC.cpp",
+            "lib/VM/JIT/**/*.cpp",
+            "lib/VM/HostModel.cpp",
+            "lib/VM/DecoratedObject.cpp",
+        ],
+    ) + [
+        "lib/InternalJavaScript/InternalBytecode.cpp",
+        "lib/VM/JIT/DiscoverBB.cpp",
+    ],
+    hdrs = [":internal_bytecode_include"],
+    copts = CXX_FLAGS + [
+        "-fno-exceptions",
+        "-fno-rtti",
+    ],
+    deps = [
+        ":compiler",
+        ":host_model",
+        ":internal_headers",
+    ],
+)
+
+# Embedders subclass these objects with RTTI enabled.
+cc_library(
+    name = "host_model",
+    srcs = [
+        "lib/VM/DecoratedObject.cpp",
+        "lib/VM/HostModel.cpp",
+    ],
+    copts = CXX_FLAGS,
+    deps = [":internal_headers"],
+)
+
+cc_library(
+    name = "jsi",
+    srcs = ["API/jsi/jsi/jsi.cpp"],
+    copts = CXX_FLAGS,
+    deps = [":headers"],
+)
+
+cc_library(
+    name = "hermes_vm",
+    srcs = [
+        "API/hermes/AsyncDebuggerAPI.cpp",
+        "API/hermes/DebuggerAPI.cpp",
+        "API/hermes/RuntimeTaskRunner.cpp",
+        "API/hermes/hermes.cpp",
+    ],
+    copts = CXX_FLAGS,
+    target_compatible_with = SUPPORTED_PLATFORM,
+    deps = [
+        ":headers",
+        ":internal_headers",
+        ":jsi",
+        ":runtime",
+    ],
+)

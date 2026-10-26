@@ -1,0 +1,17 @@
+load("@buildifier_prebuilt//:rules.bzl", "buildifier", "buildifier_test")
+
+package(default_visibility = ["//:__pkg__"])
+
+buildifier(
+    name = "format",
+    lint_mode = "warn",
+    mode = "fix",
+)
+
+buildifier_test(
+    name = "format_test",
+    lint_mode = "warn",
+    mode = "check",
+    no_sandbox = True,
+    workspace = "//:MODULE.bazel",
+)
