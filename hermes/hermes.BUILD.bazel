@@ -10,6 +10,12 @@ load("@rules_python//python:defs.bzl", "py_binary")
 
 package(default_visibility = ["//visibility:private"])
 
+filegroup(
+    name = "version_metadata",
+    srcs = ["npm/hermes-compiler/package.json"],
+    visibility = ["@hermes//tests/version:__pkg__"],
+)
+
 # CMakeLists.txt: desktop Hades, Unicode Lite, and no JIT/debugger/Intl.
 HERMES_DEFINES = [
     "HERMESVM_ALLOW_CONCURRENT_GC",

@@ -1,8 +1,25 @@
 # Releasing
 
-Release Please updates `version.txt` and the root manifest from Conventional
-Commits. Keep `MODULE.bazel` version blank; BCR publication patches it to the
-release version. `0.0.0` is the unreleased bootstrap state.
+Versions follow the pinned Hermes source, using
+`npm/hermes-compiler/package.json`. For untagged `static_h` snapshots, append the
+first nine commit characters, matching
+[upstream's version script](https://github.com/facebook/hermes/blob/393a539e645944a6ce879afc18ea8ddaa9232a08/utils/scripts/hermes/version-utils.js).
+The current proposal is `260318099.0.0-393a539e6`.
+
+Overlay-only revisions append `.bcr.N`, starting at `.bcr.1`. For example,
+`260318099.0.0-393a539e6.bcr.1` keeps the same upstream source. An upstream update
+starts a new version from that source's package metadata and commit. For a tagged
+upstream release, use its package version without the snapshot hash; remove
+`--snapshot` from the version test and set `prerelease` to false.
+
+Set `release-as` in `release-please-config.json` before each new release.
+Conventional Commits supply its changelog. `//tests/version:version_test` checks
+the proposal against the pinned package metadata and commit. Snapshot releases
+retain GitHub prerelease status.
+
+Release Please updates `version.txt` and the root manifest only through its
+release PR. Their `0.0.0` value is unreleased bootstrap state. Keep `MODULE.bazel`
+version blank; BCR publication patches it to the release version.
 
 ```mermaid
 flowchart LR

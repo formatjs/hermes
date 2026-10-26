@@ -51,8 +51,8 @@ Linux. Linux configuration assumes glibc; hermetic LLVM's
 default GNU target uses glibc 2.28. Musl is outside the current header setup.
 Other target configurations have not been validated.
 
-BuildBuddy runs Linux checks with remote execution. Linux also cross-compiles
-macOS smoke archives; macOS only downloads and runs them. See [CI](docs/ci.md).
+BuildBuddy runs Linux checks and cross-compiles macOS smoke archives through
+`with_cfg`. GitHub Actions only downloads and runs them. See [CI](docs/ci.md).
 
 The runtime uses Hades GC and Unicode Lite, with built-in Intl and debugger
 disabled. Embedders can install native Intl implementations through JSI.

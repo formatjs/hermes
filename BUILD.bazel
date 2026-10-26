@@ -6,6 +6,11 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files(["MODULE.bazel"])
 
+exports_files(
+    ["release-please-config.json"],
+    visibility = ["//tests/version:__pkg__"],
+)
+
 alias(
     name = "hermes_vm",
     actual = "@hermes_src//:hermes_vm",

@@ -1,103 +1,101 @@
-name: CI
+name: Native Smoke Tests
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  status:
   workflow_dispatch:
+    inputs:
+      invocation_url:
+        description: Successful BuildBuddy workflow invocation URL
+        required: true
+        type: string
+      commit_sha:
+        description: Full commit SHA built by that invocation
+        required: true
+        type: string
+      workspace:
+        description: BuildBuddy producer workspace
+        required: true
+        type: choice
+        options: [root, consumer]
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.ref_name != 'main' }}
+  group: native-smoke-${{ inputs.workspace || github.event.context }}-${{ inputs.commit_sha || github.event.sha }}
+  cancel-in-progress: true
 jobs:
-  linux:
-    name: Linux / ${{ matrix.workspace }}
+  record-status:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.sender.login == 'buildbuddy-io[bot]' &&
+      github.event.state == 'success' &&
+      (github.event.context == 'Test all targets' ||
+      github.event.context == 'Test independent consumer'))
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - workspace: root
-            directory: .
-            bundle: //tests/dist:smoke_bundle
-          - workspace: consumer
-            directory: examples/smoke
-            bundle: //:smoke_bundle
-    defaults:
-      run:
-        working-directory: ${{ matrix.directory }}
-        shell: bash
+    permissions:
+      statuses: write
+    outputs:
+      workspace: ${{ steps.identity.outputs.workspace }}
+      commit_sha: ${{ steps.identity.outputs.commit_sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUILD_SHA: ${{ inputs.commit_sha || github.event.sha }}
+      WORKSPACE_NAME: ${{ inputs.workspace || (github.event.context == 'Test all targets' && 'root' || 'consumer') }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: bazel-contrib/setup-bazel@0.19.0
-        with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ matrix.workspace }}
-          repository-cache: true
-      - name: Check public targets without development dependencies
-        if: matrix.workspace == 'root'
-        run: bazel query --ignore_dev_dependency --lockfile_mode=off 'deps(set(//:headers //:hermes_vm //:hermesc))' > /dev/null
-      - name: Test Linux
-        run: bazel test --config=linux //...
-      - name: Cross-build macOS ARM64 bundle
-        env:
-          BUNDLE_TARGET: ${{ matrix.bundle }}
-        run: bazel build --config=linux --platforms=@llvm//platforms:macos_aarch64 "$BUNDLE_TARGET"
-      - name: Stage Bazel bundle
-        env:
-          BUNDLE_TARGET: ${{ matrix.bundle }}
-          WORKSPACE_NAME: ${{ matrix.workspace }}
+      - name: Record native smoke status
+        id: identity
         run: |
           set -euo pipefail
-          archive=$(bazel cquery --config=linux --platforms=@llvm//platforms:macos_aarch64 --output=files "$BUNDLE_TARGET")
-          [[ -n "$archive" && "$archive" != *$'\n'* ]]
-          artifact_dir="$RUNNER_TEMP/hermes-macos-arm64-$WORKSPACE_NAME"
-          mkdir -p "$artifact_dir"
-          cp "$archive" "$artifact_dir/smoke.tar.gz"
-          (cd "$artifact_dir" && sha256sum smoke.tar.gz > smoke.tar.gz.sha256)
-      - name: Upload macOS bundle
+          [[ "$BUILD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$WORKSPACE_NAME" == root || "$WORKSPACE_NAME" == consumer ]]
+          echo "workspace=$WORKSPACE_NAME" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$BUILD_SHA" >> "$GITHUB_OUTPUT"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$BUILD_SHA" \
+            -f state=pending -f context="Native Smoke Tests / $WORKSPACE_NAME" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            -f description='Running BuildBuddy artifact smoke tests'
+
+  download:
+    needs: record-status
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout trusted artifact downloader
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Download verified BuildBuddy bundle
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_RO_PUBLIC_KEY }}
+          INVOCATION_URL: ${{ inputs.invocation_url || github.event.target_url }}
+          BUILD_SHA: ${{ needs.record-status.outputs.commit_sha }}
+          WORKSPACE_NAME: ${{ needs.record-status.outputs.workspace }}
+        run: python3 tools/ci/buildbuddy_artifacts.py
+      - name: Upload native smoke bundle
         uses: actions/upload-artifact@v7
         with:
-          name: hermes-macos-arm64-${{ matrix.workspace }}
-          path: ${{ runner.temp }}/hermes-macos-arm64-${{ matrix.workspace }}/*
+          name: hermes-macos-arm64-${{ needs.record-status.outputs.workspace }}
+          path: artifacts/*
           if-no-files-found: error
-          retention-days: 7
-      - name: Upload test logs
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-logs-${{ matrix.workspace }}
-          path: |
-            ${{ matrix.directory }}/bazel-testlogs/**/test.log
-            ${{ matrix.directory }}/bazel-testlogs/**/test.xml
-          if-no-files-found: warn
           retention-days: 7
 
   macos-smoke:
     name: macOS ARM64 artifact smoke
-    needs: linux
+    needs: [record-status, download]
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
-      - name: Download current-run bundles
+      - name: Download current-run bundle
         uses: actions/download-artifact@v8
         with:
-          pattern: hermes-macos-arm64-*
+          name: hermes-macos-arm64-${{ needs.record-status.outputs.workspace }}
           path: ${{ runner.temp }}/hermes-smoke
-      - name: Verify and run bundles
+      - name: Verify and run bundle
         env:
           SMOKE_ROOT: ${{ runner.temp }}/hermes-smoke
         run: |
           set -euo pipefail
           [[ "$(uname -m)" == arm64 ]]
-          for workspace in root consumer; do
-            artifact_dir="$SMOKE_ROOT/hermes-macos-arm64-$workspace"
-            (cd "$artifact_dir" && shasum -a 256 -c smoke.tar.gz.sha256)
-            python3 - "$artifact_dir/smoke.tar.gz" <<'PY'
+          (cd "$SMOKE_ROOT" && shasum -a 256 -c smoke.tar.gz.sha256)
+          python3 - "$SMOKE_ROOT/smoke.tar.gz" <<'PY'
           import sys
           import tarfile
 
@@ -115,14 +113,33 @@ jobs:
               if sorted(files) != ["hermesc", "runtime_test"]:
                   raise SystemExit("Incomplete smoke bundle")
           PY
-            binary_dir="$artifact_dir/bin"
-            mkdir -p "$binary_dir"
-            tar -xzf "$artifact_dir/smoke.tar.gz" -C "$binary_dir"
-            for binary in runtime_test hermesc; do
-              file "$binary_dir/$binary" | grep -E 'Mach-O 64-bit.*arm64'
-            done
-            "$binary_dir/runtime_test"
-            printf 'print("Hermes compiler smoke");\n' > "$binary_dir/smoke.js"
-            "$binary_dir/hermesc" -O -emit-binary "-out=$binary_dir/smoke.hbc" "$binary_dir/smoke.js"
-            test -s "$binary_dir/smoke.hbc"
+          binary_dir="$SMOKE_ROOT/bin"
+          mkdir -p "$binary_dir"
+          tar -xzf "$SMOKE_ROOT/smoke.tar.gz" -C "$binary_dir"
+          for binary in runtime_test hermesc; do
+            file "$binary_dir/$binary" | grep -E 'Mach-O 64-bit.*arm64'
           done
+          "$binary_dir/runtime_test"
+          printf 'print("Hermes compiler smoke");\n' > "$binary_dir/smoke.js"
+          "$binary_dir/hermesc" -O -emit-binary "-out=$binary_dir/smoke.hbc" "$binary_dir/smoke.js"
+          test -s "$binary_dir/smoke.hbc"
+
+  publish-status:
+    needs: [record-status, download, macos-smoke]
+    if: always() && !cancelled() && needs.record-status.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUILD_SHA: ${{ needs.record-status.outputs.commit_sha }}
+      WORKSPACE_NAME: ${{ needs.record-status.outputs.workspace }}
+      RESULTS: ${{ toJSON(needs) }}
+    steps:
+      - name: Publish native smoke result
+        run: |
+          state=$(jq -r 'if all(.[]; .result == "success") then "success" else "failure" end' <<< "$RESULTS")
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$BUILD_SHA" \
+            -f state="$state" -f context="Native Smoke Tests / $WORKSPACE_NAME" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            -f description="Native smoke tests: $state"

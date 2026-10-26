@@ -23,6 +23,9 @@ BuildBuddy supplies authentication. Do not commit an API key.
 Use Conventional Commits. Follow [docs/releasing.md](docs/releasing.md): keep
 `MODULE.bazel` version blank, let Release Please update `version.txt`, and merge
 its release PR only after CI passes and its proposed version is approved.
+Overlay versions follow the pinned Hermes package version. Snapshots append its
+nine-character commit hash; overlay-only revisions append `.bcr.N`.
+Update `release-as` when changing the source pin or preparing an overlay revision.
 Do not invent a published version, push a version tag, or dispatch release/BCR
 publication without authorization. Use `formatjs` organization secrets
 `GH_RELEASE_TOKEN` and `BCR_PUBLISH_TOKEN`, with an access policy covering this
