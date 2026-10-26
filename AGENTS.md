@@ -26,6 +26,8 @@ its release PR only after CI passes and its proposed version is approved.
 Overlay versions follow the pinned Hermes package version. Snapshots append its
 nine-character commit hash; overlay-only revisions append `.bcr.N`.
 Update `release-as` when changing the source pin or preparing an overlay revision.
+Release tooling uses `//tools/release:release` and its real Release Please
+regression test; keep Node.js, npm packages, and JS rules development-only.
 Do not invent a published version, push a version tag, or dispatch release/BCR
 publication without authorization. Use `formatjs` organization secrets
 `GH_RELEASE_TOKEN` and `BCR_PUBLISH_TOKEN`, with an access policy covering this
