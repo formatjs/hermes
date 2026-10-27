@@ -36,7 +36,7 @@ jobs:
           path: registry
           persist-credentials: false
       - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
-      - name: Stage checked-in registry entry
+      - name: Generate versioned registry entry
         working-directory: this
         run: |
           set -euo pipefail

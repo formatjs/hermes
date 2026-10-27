@@ -4,9 +4,10 @@ Use Bazel for builds, tests, code generation, and formatting. Keep the overlay
 native to `rules_cc`; do not introduce CMake or `rules_foreign_cc`. Never run
 `bazel clean` unless explicitly requested.
 
-`repositories.bzl` pins upstream Hermes and its checksum. `bcr/modules/hermes/` owns source
-selection, configuration, and code generation. Public root targets must load
-without development dependencies. Consumers select their own toolchains; root
+`repositories.bzl` pins upstream Hermes and its checksum. `bcr/overlay/` owns source
+selection, configuration, and code generation; `bcr/patches/` holds source fixes.
+Publication generates versioned BCR entries and checksums from these inputs.
+Public root targets must load without development dependencies. Consumers select their own toolchains; root
 and consumer tests use `hermeticbuild/hermetic-llvm`.
 
 Build Hermes on Linux. Non-Linux workers only run downloaded smoke archives;

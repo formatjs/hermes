@@ -1,22 +1,40 @@
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
 load("//:repositories.bzl", "HERMES_COMMIT", "HERMES_SHA256", "HERMES_VERSION")
+
+_PIN_ARGS = [
+    "--version=" + HERMES_VERSION,
+    "--commit=" + HERMES_COMMIT,
+    "--checksum=" + HERMES_SHA256,
+]
+
+py_library(
+    name = "entry",
+    srcs = ["entry.py"],
+)
 
 py_binary(
     name = "stage",
     srcs = ["stage.py"],
-    args = ["--version=" + HERMES_VERSION],
+    args = _PIN_ARGS,
     legacy_create_init = 0,
     main = "stage.py",
+    deps = [":entry"],
 )
 
 py_binary(
     name = "validate",
     srcs = ["validate.py"],
-    args = [
-        "--version=" + HERMES_VERSION,
-        "--commit=" + HERMES_COMMIT,
-        "--checksum=" + HERMES_SHA256,
-    ],
+    args = _PIN_ARGS,
     legacy_create_init = 0,
     main = "validate.py",
+    deps = [":entry"],
+)
+
+py_test(
+    name = "entry_test",
+    srcs = ["entry_test.py"],
+    legacy_create_init = 0,
+    deps = [
+        ":entry",
+    ],
 )

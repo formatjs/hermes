@@ -1,6 +1,6 @@
 module(
     name = "hermes",
-    version = "260318099.0.0-393a539e6.bcr.1",
+    version = "",
     bazel_compatibility = [">=8.0.0"],
 )
 

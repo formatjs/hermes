@@ -6,20 +6,20 @@ HERMES_COMMIT = "393a539e645944a6ce879afc18ea8ddaa9232a08"
 HERMES_SHA256 = "5fce2dbb3b9046b21b717de30d9e5192f756420e12daf967dddee3a32d975a51"
 HERMES_VERSION = "260318099.0.0-393a539e6.bcr.1"
 
-_BCR_ENTRY = "bcr/modules/hermes/" + HERMES_VERSION
+_BCR_ROOT = "bcr"
 
 def _hermes_impl(module_ctx):
     http_archive(
         name = "hermes_src",
-        build_file = Label("//:" + _BCR_ENTRY + "/overlay/BUILD.bazel"),
+        build_file = Label("//:" + _BCR_ROOT + "/overlay/BUILD.bazel"),
         files = {
-            "configure.bzl": Label("//:" + _BCR_ENTRY + "/overlay/configure.bzl"),
-            "tests/BUILD.bazel": Label("//:" + _BCR_ENTRY + "/overlay/tests/BUILD.bazel"),
-            "tests/runtime_test.cpp": Label("//:" + _BCR_ENTRY + "/overlay/tests/runtime_test.cpp"),
+            "configure.bzl": Label("//:" + _BCR_ROOT + "/overlay/configure.bzl"),
+            "tests/BUILD.bazel": Label("//:" + _BCR_ROOT + "/overlay/tests/BUILD.bazel"),
+            "tests/runtime_test.cpp": Label("//:" + _BCR_ROOT + "/overlay/tests/runtime_test.cpp"),
         },
         patches = [
-            Label("//:" + _BCR_ENTRY + "/patches/missing_standard_headers.patch"),
-            Label("//:" + _BCR_ENTRY + "/patches/proxy_construct_receiver.patch"),
+            Label("//:" + _BCR_ROOT + "/patches/missing_standard_headers.patch"),
+            Label("//:" + _BCR_ROOT + "/patches/proxy_construct_receiver.patch"),
         ],
         patch_args = ["-p1"],
         sha256 = HERMES_SHA256,

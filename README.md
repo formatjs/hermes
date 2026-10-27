@@ -65,7 +65,9 @@ disabled. Embedders can install native Intl implementations through JSI.
 The `.bcr.1` revision fixes proxy construction: construct traps do not read
 `newTarget.prototype`; forwarded constructors allocate their own receiver.
 Runtime smoke tests cover trap order, derived constructors, and nested proxies.
-`bcr/modules/hermes/<version>/overlay/` holds the build definitions and helpers.
+`bcr/overlay/` holds the maintained build definitions and helpers;
+`bcr/patches/` holds source fixes. Publication generates a complete versioned
+BCR entry and its checksums. Historical entries stay in BCR and release tags.
 Updating Hermes requires reviewing source lists, configuration headers, and
 internal-bytecode generation,
 then running root and consumer tests. `bazel run //:format` formats Bazel files.

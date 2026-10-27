@@ -1,13 +1,21 @@
 # Bazel Central Registry
 
-`modules/hermes/<version>/` is the complete registry entry. `source.json` points
-at upstream Hermes; `overlay/` contains the reviewed Bazel files. Local builds
-use these same build definitions, configuration rule, and header patch.
+Maintain `overlay/`, `patches/`, `MODULE.bazel`, `presubmit.yml`, and
+`metadata.json` here. Both module templates keep their version blank.
+`repositories.bzl` pins upstream Hermes, its checksum, and the proposed version;
+local builds use these same overlay files and patches.
 
-Run `bazel run //tools/bcr:validate` after edits. It checks source pins, versions,
-file inventories, and checksums without rewriting files. Update stale hashes
-in `source.json` before committing.
+`bazel run //tools/bcr:validate` checks the release proposal and generates a
+temporary entry. CI builds that generated entry as an independent consumer.
 
-Publication copies the selected entry with `//tools/bcr:stage`, preserves the
-registry's other versions, adds provenance attestations, and opens the BCR PR.
-No overlay files are generated during release.
+`bazel run //tools/bcr:stage -- --registry=/path/to/registry` materializes
+`modules/hermes/<version>/`: stamps both module templates, copies overlay files
+and patches, and computes `source.json` inventories and checksums. Patches apply
+in filename order. Publication attests this entry and opens the BCR PR.
+Existing registry versions and yank records stay intact; publishing over an
+existing version fails. Historical snapshots live in BCR and release tags.
+
+For a version bump, edit the source pin/checksum and proposed version in
+`repositories.bzl`, then match `release-as`. Review upstream compatibility and
+run root, consumer, and generated-entry checks. No version directories or
+checksums need hand editing.
