@@ -1,6 +1,6 @@
 module(name = "hermes_smoke")
 
-bazel_dep(name = "hermes", version = "260318099.0.0-393a539e6")
+bazel_dep(name = "hermes", version = "")
 
 # Test helpers and toolchain selection belong to this consumer root only.
 bazel_dep(name = "llvm", version = "0.8.25", dev_dependency = True)

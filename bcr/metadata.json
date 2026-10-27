@@ -17,8 +17,5 @@
         "github:facebook/hermes",
         "github:formatjs/hermes"
     ],
-    "versions": [
-        "260318099.0.0-393a539e6"
-    ],
     "yanked_versions": {}
 }
