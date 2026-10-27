@@ -6,7 +6,7 @@
   "packages": {
     ".": {
       "package-name": "hermes",
-      "release-as": "260318099.0.0-393a539e6.bcr.1",
+      "release-as": "260318099.0.0-393a539e6",
       "prerelease": true
     }
   }

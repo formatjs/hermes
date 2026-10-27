@@ -4,7 +4,7 @@ Versions follow the pinned Hermes source, using
 `npm/hermes-compiler/package.json`. For untagged `static_h` snapshots, append the
 first nine commit characters, matching
 [upstream's version script](https://github.com/facebook/hermes/blob/393a539e645944a6ce879afc18ea8ddaa9232a08/utils/scripts/hermes/version-utils.js).
-The current proposal is `260318099.0.0-393a539e6.bcr.1`.
+The current proposal is `260318099.0.0-393a539e6`.
 
 Overlay-only revisions append `.bcr.N`, starting at `.bcr.1`. For example,
 `260318099.0.0-393a539e6.bcr.1` keeps the same upstream source. An upstream update

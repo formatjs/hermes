@@ -4,7 +4,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 HERMES_COMMIT = "393a539e645944a6ce879afc18ea8ddaa9232a08"
 HERMES_SHA256 = "5fce2dbb3b9046b21b717de30d9e5192f756420e12daf967dddee3a32d975a51"
-HERMES_VERSION = "260318099.0.0-393a539e6.bcr.1"
+HERMES_VERSION = "260318099.0.0-393a539e6"
 
 _BCR_ROOT = "bcr"
 

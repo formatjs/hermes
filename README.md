@@ -62,7 +62,7 @@ disabled. Embedders can install native Intl implementations through JSI.
 ## Upkeep
 
 `repositories.bzl` owns the source commit/checksum and selected BCR version.
-The `.bcr.1` revision fixes proxy construction: construct traps do not read
+The proxy construction patch ensures construct traps do not read
 `newTarget.prototype`; forwarded constructors allocate their own receiver.
 Runtime smoke tests cover trap order, derived constructors, and nested proxies.
 `bcr/overlay/` holds the maintained build definitions and helpers;
